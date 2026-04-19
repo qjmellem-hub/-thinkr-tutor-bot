@@ -1,4 +1,5 @@
 import os
+import asyncio
 import logging
 import base64
 import httpx
@@ -69,16 +70,11 @@ def save_history(user_id: int, history: list):
 async def call_gemini(history: list, new_parts: list) -> str:
     contents = list(history)
     contents.append({"role": "user", "parts": new_parts})
-
     payload = {
         "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
         "contents": contents,
-        "generationConfig": {
-            "maxOutputTokens": 400,
-            "temperature": 0.7,
-        },
+        "generationConfig": {"maxOutputTokens": 400, "temperature": 0.7},
     }
-
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(GEMINI_URL, json=payload)
         response.raise_for_status()
@@ -87,8 +83,7 @@ async def call_gemini(history: list, new_parts: list) -> str:
 
 # ── Command Handlers ─────────────────────
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    conversation_history[user_id] = []
+    conversation_history[update.effective_user.id] = []
     await update.message.reply_text(
         "Hey! I am Thinkr.\n\n"
         "I am your personal study buddy for Grades 8 to 12.\n\n"
@@ -117,7 +112,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_text = update.message.text
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-
     history = get_history(user_id)
     try:
         reply = await call_gemini(history, [{"text": user_text}])
@@ -132,21 +126,17 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-
     photo = update.message.photo[-1]
     caption = update.message.caption or "Please help me with this question in the image."
     photo_file = await context.bot.get_file(photo.file_id)
-
     async with httpx.AsyncClient(timeout=30.0) as client:
         img_response = await client.get(photo_file.file_path)
         img_base64 = base64.b64encode(img_response.content).decode("utf-8")
-
     history = get_history(user_id)
     new_parts = [
         {"text": caption},
         {"inline_data": {"mime_type": "image/jpeg", "data": img_base64}},
     ]
-
     try:
         reply = await call_gemini(history, new_parts)
         history.append({"role": "user", "parts": [{"text": f"[Photo] {caption}"}]})
@@ -162,13 +152,10 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-
     voice_file = await context.bot.get_file(update.message.voice.file_id)
-
     async with httpx.AsyncClient(timeout=30.0) as client:
         audio_response = await client.get(voice_file.file_path)
         audio_base64 = base64.b64encode(audio_response.content).decode("utf-8")
-
     history = get_history(user_id)
     new_parts = [
         {
@@ -180,7 +167,6 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         },
         {"inline_data": {"mime_type": "audio/ogg", "data": audio_base64}},
     ]
-
     try:
         reply = await call_gemini(history, new_parts)
         history.append({"role": "user", "parts": [{"text": "[Voice note]"}]})
@@ -193,8 +179,8 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "I could not process that voice note. Try typing your question instead."
         )
 
-# ── Main ─────────────────────────────────
-def main():
+# ── Main — fixes Python 3.14 asyncio issue ──
+async def run():
     logger.info("Starting Thinkr bot...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
@@ -206,7 +192,10 @@ def main():
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
     logger.info("Thinkr bot is running!")
-    app.run_polling(drop_pending_updates=True)
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(drop_pending_updates=True)
+    await asyncio.Event().wait()  # run forever
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(run())
