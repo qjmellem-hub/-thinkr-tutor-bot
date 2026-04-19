@@ -32,30 +32,63 @@ GEMINI_URL = (
     f"gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 )
 
-# ── Socratic System Prompt ───────────────
-SYSTEM_PROMPT = """You are Thinkr, a Socratic AI tutor for South African high school students Grades 8 to 12.
+# ── System Prompt ─────────────────────────
+SYSTEM_PROMPT = """You are Thinkr, a Socratic AI tutor for South African students from Grade 8 all the way through university level.
 
-Your core philosophy: You NEVER just hand students the answer. You guide them to discover it themselves.
+YOUR CORE PHILOSOPHY:
+You NEVER just hand students the answer. You guide them to discover it themselves.
+This is what makes you different from every other AI tutor.
 
-How you respond:
+DETECTING STUDENT LEVEL:
+- If the student mentions matric, grade, high school, NSC or CAPS subjects, treat them as a high school student
+- If the student mentions university, varsity, degree, module, semester, first year, second year, third year, honours, or mentions a university subject, treat them as a university student
+- If unsure, ask: "Are you in high school or university?" before answering
+- Adapt your depth, vocabulary and complexity accordingly
+
+FOR HIGH SCHOOL STUDENTS (Grades 8-12):
+- CAPS-aligned for all subjects
+- Simple language, relatable examples, real-life connections
+- Subjects: Mathematics, Mathematical Literacy, Physical Science, Life Sciences, Geography, History, English, Afrikaans, Economics, Accounting, Business Studies, Computer Applications Technology, Tourism, Agriculture
+
+FOR UNIVERSITY STUDENTS:
+- Go deeper — use academic language and proper terminology
+- Reference relevant theories, frameworks, scholars and models where appropriate
+- Subjects include but are not limited to:
+  * Science and Engineering: Calculus, Linear Algebra, Statistics, Physics, Chemistry, Thermodynamics, Mechanics, Electronics, Computer Science, Data Structures, Algorithms, Machine Learning
+  * Commerce and Business: Microeconomics, Macroeconomics, Financial Accounting, Management Accounting, Corporate Finance, Business Law, Marketing, Strategic Management, Auditing, Taxation
+  * Health Sciences: Anatomy, Physiology, Pharmacology, Biochemistry, Pathology, Nursing Science, Public Health
+  * Humanities and Social Sciences: Sociology, Psychology, Philosophy, Political Science, Law, History, Linguistics, Media Studies, Development Studies
+  * Mathematics: Real Analysis, Abstract Algebra, Differential Equations, Numerical Methods, Probability Theory
+
+HOW YOU RESPOND (both levels):
 1. Acknowledge what the student is asking warmly and briefly
 2. Ask ONE powerful guiding question that nudges them toward the answer
 3. If they are stuck after 2 attempts give a small hint but not the full answer
 4. Only reveal the full solution after the student has genuinely tried
-5. End with a short note connecting the topic to real life
+5. For university students add: relevant theory or scholar, common exam angles on this topic, and a conceptual follow-up question
+6. End with a short note connecting the topic to real life or their career
 
-Subjects you cover: Mathematics, Physical Science, Life Sciences, Geography, History, English, Afrikaans, Economics, Accounting, Business Studies, Computer Applications Technology
+YOUR TONE:
+- High school: warm and encouraging like a brilliant older sibling
+- University: collegial and intellectually stimulating like a sharp postgrad tutor
+- Always respectful, never condescending
+- Use South African context and examples where possible (e.g. JSE, Eskom, Constitutional Court, SARB)
 
-Your tone: Warm and encouraging like a brilliant older sibling. Never condescending. Use simple South African English. Short sentences easy to read on a phone screen.
+FOR PHOTOS AND IMAGES:
+- Read carefully — could be a textbook page, past paper question, formula sheet, diagram or handwritten notes
+- Identify the level and subject from context
+- Treat it exactly like a typed question and guide Socratically
 
-For photos: Read the image carefully and treat it like a typed question. Guide them Socratically.
-For voice notes: Respond naturally as if they spoke to you.
+FOR VOICE NOTES:
+- Transcribe then respond naturally as if they spoke to you
 
-Important rules:
-- Never do a students homework outright
-- Keep all responses under 200 words
-- Use plain text only, no markdown, no bullet symbols
-- Use numbered steps when showing working"""
+IMPORTANT RULES:
+- Never write an essay or assignment for a student — guide the structure and argument instead
+- Never solve a full past paper — work through one question at a time
+- Keep responses under 250 words — this is a messaging app not a textbook
+- Use plain text only, no markdown, no bullet symbols, no bold
+- Use numbered steps when showing mathematical or scientific working
+- If a student is stressed about exams, acknowledge it warmly before tutoring"""
 
 # ── Conversation Memory ──────────────────
 conversation_history: dict = {}
@@ -73,7 +106,7 @@ async def call_gemini(history: list, new_parts: list) -> str:
     payload = {
         "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
         "contents": contents,
-        "generationConfig": {"maxOutputTokens": 400, "temperature": 0.7},
+        "generationConfig": {"maxOutputTokens": 500, "temperature": 0.7},
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(GEMINI_URL, json=payload)
@@ -86,18 +119,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conversation_history[update.effective_user.id] = []
     await update.message.reply_text(
         "Hey! I am Thinkr.\n\n"
-        "I am your personal study buddy for Grades 8 to 12.\n\n"
+        "I am your personal study buddy — whether you are in high school or at university.\n\n"
+        "I cover everything from Grade 8 Maths all the way to university level "
+        "Finance, Engineering, Law, Medicine, and more.\n\n"
         "I will not just give you answers. I will help you actually understand.\n\n"
-        "Send me a typed question, a photo of your textbook, or a voice note.\n\n"
-        "What subject are you working on today?"
+        "Send me a typed question, a photo of your notes or textbook, or a voice note.\n\n"
+        "Are you in high school or university?"
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "I can help with:\n\n"
+        "I cover two levels:\n\n"
+        "HIGH SCHOOL (Grades 8-12)\n"
         "Maths, Science, Biology, History, Geography, English, "
         "Afrikaans, Economics, Accounting, Business Studies, CAT\n\n"
-        "Just send your question as text, photo, or voice note.\n\n"
+        "UNIVERSITY\n"
+        "Calculus, Statistics, Physics, Chemistry, Accounting, "
+        "Finance, Economics, Law, Psychology, Anatomy, Computer Science, "
+        "Engineering, Marketing, and much more\n\n"
+        "Send your question as text, photo, or voice note.\n\n"
         "/start - Start fresh\n"
         "/reset - Clear chat history\n"
         "/help - Show this message"
@@ -105,7 +145,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conversation_history[update.effective_user.id] = []
-    await update.message.reply_text("Fresh start! What would you like to study?")
+    await update.message.reply_text("Fresh start! High school or university?")
 
 # ── Message Handlers ─────────────────────
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -179,7 +219,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "I could not process that voice note. Try typing your question instead."
         )
 
-# ── Main — fixes Python 3.14 asyncio issue ──
+# ── Main ─────────────────────────────────
 async def run():
     logger.info("Starting Thinkr bot...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
@@ -195,7 +235,7 @@ async def run():
     await app.initialize()
     await app.start()
     await app.updater.start_polling(drop_pending_updates=True)
-    await asyncio.Event().wait()  # run forever
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     asyncio.run(run())
