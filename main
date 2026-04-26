@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 8337c4b212e24647aabef156b8443ea496df2cf9 agent <agent@replit.com> 1776477609 +0000	commit (initial): Initial commit
+8337c4b212e24647aabef156b8443ea496df2cf9 783075eddaf1150e2cdbb20d5403a00551bb19cc mkarating <58055784-mkarating@users.noreply.replit.com> 1777066646 +0000	commit: Add AI-powered chat and study features to the learning application
+783075eddaf1150e2cdbb20d5403a00551bb19cc 0b1bb9ae61895b9340600651c425f24d1b1dead0 mkarating <58055784-mkarating@users.noreply.replit.com> 1777067403 +0000	commit: Add new features for studying and practicing academic subjects
+0b1bb9ae61895b9340600651c425f24d1b1dead0 dcd93e2510178ea599f9bfdd528ebe2a784cbd61 mkarating <58055784-mkarating@users.noreply.replit.com> 1777067778 +0000	commit: Add foundational building blocks to help students with prerequisite concepts
+dcd93e2510178ea599f9bfdd528ebe2a784cbd61 edf9cbecc75989a84382e62551d0d18e7c098ab1 mkarating <58055784-mkarating@users.noreply.replit.com> 1777068213 +0000	commit: Add ability to upload images to chats and use personal API keys
+edf9cbecc75989a84382e62551d0d18e7c098ab1 5f7c4b6aa73a9a22f1461f3c1d5c114c0c435e52 mkarating <58055784-mkarating@users.noreply.replit.com> 1777102772 +0000	commit: Add official citations and references to foundational concepts
+5f7c4b6aa73a9a22f1461f3c1d5c114c0c435e52 c3d696cb27620c9ba1b9fc7ec9f6b39328ba8217 mkarating <58055784-mkarating@users.noreply.replit.com> 1777103595 +0000	commit: Add verified reference sources and display badges for educational content
+c3d696cb27620c9ba1b9fc7ec9f6b39328ba8217 f266555a66c9bf401292060c9d2ddeea4883a733 mkarating <58055784-mkarating@users.noreply.replit.com> 1777110962 +0000	commit: Implement a data-saving mode for reduced bandwidth usage
